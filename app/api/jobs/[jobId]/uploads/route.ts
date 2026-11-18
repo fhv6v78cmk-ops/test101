@@ -3,12 +3,14 @@ import { z } from "zod";
 import { createSignedSourceUpload, registerSourceDocument } from "@/lib/jobs/service";
 import { requireUser } from "@/lib/supabase/auth";
 
+const pdfFileName = z.string().max(255).regex(/^[^/\\]+\.pdf$/i, "Select a PDF file.");
+
 const signedUploadRequestSchema = z.object({
-  fileName: z.string().min(1),
+  fileName: pdfFileName,
 });
 
 const registerUploadRequestSchema = z.object({
-  fileName: z.string().min(1),
+  fileName: pdfFileName,
   storagePath: z.string().min(1),
   sha256: z.string().regex(/^[a-f0-9]{64}$/),
   byteSize: z.number().int().positive(),

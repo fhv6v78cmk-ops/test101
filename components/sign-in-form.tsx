@@ -3,28 +3,41 @@
 import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-export function SignInForm() {
+export function SignInForm({ configured, callbackError }: {
+  configured: boolean;
+  callbackError?: string;
+}) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    callbackError === "link"
+      ? "This sign-in link could not be used. Request a new link in this browser."
+      : callbackError === "unavailable" ? "Sign-in is temporarily unavailable." : "",
+  );
+  const [pending, setPending] = useState(false);
 
   async function signIn() {
     setError("");
     setMessage("");
-    const supabase = createSupabaseBrowserClient();
-    const { error: signInError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-      },
-    });
-
-    if (signInError) {
-      setError(signInError.message);
-      return;
+    setPending(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error: signInError } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+      setMessage("Check your email for the sign-in link. Open it in this browser.");
+    } catch {
+      setError("Sign-in is temporarily unavailable.");
+    } finally {
+      setPending(false);
     }
-
-    setMessage("Check your email for the sign-in link.");
   }
 
   return (
@@ -46,12 +59,17 @@ export function SignInForm() {
       <button
         type="button"
         onClick={() => void signIn()}
-        className="mt-4 w-full border border-[#17201b] bg-[#17201b] px-4 py-3 text-sm font-semibold text-white"
+        disabled={!configured || pending || !email.trim()}
+        className="mt-4 w-full border border-[#17201b] bg-[#17201b] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
       >
-        Send sign-in link
+        {pending ? "Sending..." : "Send sign-in link"}
       </button>
       {message && <p className="mt-4 text-sm font-semibold text-[#0f766e]">{message}</p>}
-      {error && <p className="mt-4 text-sm font-semibold text-[#8a3a1f]">{error}</p>}
+      {(!configured || error) && (
+        <p role="alert" className="mt-4 text-sm font-semibold text-[#8a3a1f]">
+          {configured ? error : "Sign-in is unavailable until Supabase is configured."}
+        </p>
+      )}
     </div>
   );
 }

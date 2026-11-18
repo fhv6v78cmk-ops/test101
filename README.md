@@ -85,6 +85,8 @@ supabase/migrations/
 
 The RLS model assumes each authenticated user has an `organisation_users` row before using the app.
 
+In Supabase Auth URL Configuration, set **Site URL** to the app's production origin and add its `/auth/callback` URL to **Redirect URLs**. For local sign-in also allow `http://localhost:3000/auth/callback`. Open the email link in the same browser that requested it so Supabase can complete the code exchange.
+
 ## Documentation
 
 - `docs/architecture.md`
